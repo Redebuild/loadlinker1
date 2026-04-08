@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LoadLink</title>
+
+<style>
+body{font-family:'Segoe UI';margin:0;background:linear-gradient(135deg,#f5f7fa,#e4ecf7);}
+.screen{display:none;padding:20px;text-align:center;}
+.active{display:block;}
+
+.topbar{position:fixed;top:0;left:0;width:100%;height:50px;background:white;display:flex;align-items:center;padding-left:10px;box-shadow:0 2px 6px rgba(0,0,0,0.1);}
+#register{padding-top:70px;}
+
+.role-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:15px;}
+.role-tile{aspect-ratio:1;border-radius:16px;color:white;display:flex;flex-direction:column;justify-content:center;align-items:center;}
+.role-tile span{font-size:28px;}
+
+.driver{background:linear-gradient(45deg,#ff7e5f,#feb47b);}
+.fleet{background:linear-gradient(45deg,#43cea2,#185a9d);}
+.agent{background:linear-gradient(45deg,#667eea,#764ba2);}
+.company{background:linear-gradient(45deg,#f7971e,#ffd200);}
+.shipper{background:linear-gradient(45deg,#00c6ff,#0072ff);}
+
+.form-card{width:90%;margin:auto;padding:20px;border-radius:20px;background:linear-gradient(135deg,#fff,#f0f4ff);box-shadow:0 10px 25px rgba(0,0,0,0.15);}
+
+input,select{width:100%;padding:12px;margin:8px 0;border-radius:10px;border:none;box-shadow:inset 0 2px 4px rgba(0,0,0,0.08);}
+
+.main{margin-top:15px;padding:14px;background:linear-gradient(45deg,#000,#333);color:white;border-radius:12px;width:90%;}
+
+.upload-btn{width:100%;padding:12px;margin:8px 0;border-radius:10px;border:2px dashed #bbb;background:#fafafa;}
+
+.error-text{color:red;font-size:12px;text-align:left;}
+
+.dropdown-list{width:100%;max-height:150px;overflow-y:auto;border:1px solid #ccc;border-radius:8px;background:white;text-align:left;}
+.dropdown-item{padding:10px;cursor:pointer;}
+.dropdown-item:hover{background:#f0f0f0;}
+
+.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);justify-content:center;align-items:center;}
+.modal-content{background:white;padding:20px;border-radius:12px;width:85%;}
+</style>
+</head>
+
+<body>
+
+<!-- ROLE -->
+<div id="role" class="screen active">
+<h2>Who are you?</h2>
+<div class="role-grid">
+<button class="role-tile driver" onclick="selectRole('driver')"><span>🚚</span>Driver</button>
+<button class="role-tile fleet" onclick="selectRole('fleet')"><span>🚛</span>Fleet Owner</button>
+<button class="role-tile agent" onclick="selectRole('agent')"><span>🤝</span>Agent</button>
+<button class="role-tile company" onclick="selectRole('company')"><span>🏢</span>Company</button>
+<button class="role-tile shipper" onclick="selectRole('shipper')"><span>📦</span>Shipper</button>
+</div>
+</div>
+
+<!-- REGISTER -->
+<div id="register" class="screen">
+<div class="topbar"><button onclick="goBack()">⬅</button></div>
+
+<h2>LoadLink</h2>
+<p style="font-size:12px;color:gray;">Load jaha, Truck waha</p>
+
+<h2 id="title"></h2>
+
+<div class="form-card">
+<div id="form"></div>
+</div>
+
+<button class="main" onclick="submitForm()">Submit</button>
+</div>
+
+<!-- WARNING -->
+<div id="warningModal" class="modal">
+<div class="modal-content">
+<h3>⚠️ Warning</h3>
+<p>All fields required</p>
+<button onclick="closeWarning()">OK</button>
+</div>
+</div>
+
+<!-- UPLOAD -->
+<div id="modal" class="modal">
+<div class="modal-content">
+<h3 id="modalTitle"></h3>
+<div id="modalBody"></div>
+<br>
+<button onclick="closeModal()">Close</button>
+</div>
+</div>
+
+<script>
+
+let role="";
+
+/* NAV */
+function goTo(id){
+document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+document.getElementById(id).classList.add('active');
+history.pushState({screen:id},"","#"+id);
+}
+function goBack(){history.back();}
+window.onpopstate=e=>goTo(e.state?.screen||"role");
+
+/* ROLE */
+function selectRole(r){role=r;goTo('register');loadForm();}
+
+/* VALIDATION */
+function validateNumberInput(input,type){
+let v=input.value;
+if(/[^0-9]/.test(v)){input.value=v.replace(/[^0-9]/g,'');showError(input,"Only numbers allowed");return;}
+if(type==="age"&&v&&parseInt(v)>110){input.value=110;showError(input,"Max 110");return;}
+clearError(input);
+}
+function showError(i,m){let e=i.nextElementSibling;if(!e||!e.classList.contains("error-text")){e=document.createElement("div");e.className="error-text";i.after(e);}e.innerText=m;}
+function clearError(i){let e=i.nextElementSibling;if(e&&e.classList.contains("error-text"))e.remove();}
+
+function validateForm(){
+let inputs=document.querySelectorAll("#form input,#form select");
+for(let i of inputs){
+if(i.placeholder?.includes("Optional"))continue;
+if(i.offsetParent===null)continue;
+if(i.value.trim()==="")return false;
+}
+return true;
+}
+
+function submitForm(){
+if(!validateForm()){document.getElementById("warningModal").style.display="flex";return;}
+alert("Registration Completed for "+role);
+}
+function closeWarning(){document.getElementById("warningModal").style.display="none";}
+
+/* STATES */
+const states=["Delhi","Maharashtra","Karnataka","Tamil Nadu","Uttar Pradesh","Gujarat","Punjab","Rajasthan"];
+const cities=["Delhi","Mumbai","Bangalore","Hyderabad","Chennai","Kolkata","Pune","Ahmedabad","Jaipur","Lucknow","Kanpur","Nagpur"];
+
+function showDropdown(input,data){
+let v=input.value.toLowerCase();
+let list=input.nextElementSibling;
+if(!list||!list.classList.contains("dropdown-list")){list=document.createElement("div");list.className="dropdown-list";input.after(list);}
+list.innerHTML="";
+if(v===""){list.style.display="none";return;}
+data.filter(d=>d.toLowerCase().includes(v)).forEach(d=>{
+let div=document.createElement("div");div.className="dropdown-item";div.innerText=d;
+div.onclick=()=>{input.value=d;list.style.display="none";};
+list.appendChild(div);
+});
+list.style.display="block";
+}
+function showStateSuggestions(i){showDropdown(i,states);}
+function showCitySuggestions(i){showDropdown(i,cities);}
+
+/* PINCODE */
+function fetchPincodeData(input){
+if(input.value.length!==6)return;
+fetch(`https://api.postalpincode.in/pincode/${input.value}`)
+.then(r=>r.json())
+.then(d=>{
+if(d[0].Status==="Success"){
+document.querySelector("input[placeholder='State / UT']").value=d[0].PostOffice[0].State;
+}
+});
+}
+
+/* GEO */
+function getLocation(){
+if(!navigator.geolocation){alert("Not supported");return;}
+navigator.geolocation.getCurrentPosition(pos=>{
+fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`)
+.then(r=>r.json())
+.then(d=>{
+document.querySelector("input[placeholder='State / UT']").value=d.address.state||"";
+});
+});
+}
+
+/* ADDRESS FLOW */
+function showManualAddress(){document.getElementById("manualAddress").style.display="block";}
+function useCurrentLocation(){getLocation();document.getElementById("manualAddress").style.display="none";}
+
+function addressFields(){
+return `
+<button class="upload-btn" onclick="useCurrentLocation()">📍 Use Current Location</button>
+<p style="font-size:12px;color:gray;">OR</p>
+<button class="upload-btn" onclick="showManualAddress()">📝 Enter Other Address</button>
+
+<div id="manualAddress" style="display:none;">
+<input placeholder="House No">
+<input placeholder="Street">
+<input placeholder="Landmark (Optional)">
+<input placeholder="State / UT" oninput="showStateSuggestions(this)">
+<input placeholder="Pincode" oninput="validateNumberInput(this,'phone');fetchPincodeData(this)">
+</div>
+`;
+}
+
+/* UPLOAD */
+function upload(label,type){return `<button class="upload-btn" onclick="openModal('${type}')">${label}</button>`;}
+function openModal(type){
+let t=document.getElementById("modalTitle"),b=document.getElementById("modalBody");
+if(type==="gov"){t.innerText="Govt ID";b.innerHTML=`<input type="file">`;}
+if(type==="photo"){t.innerText="Photo";b.innerHTML=`<input type="file">`;}
+if(type==="company"){t.innerText="Company ID";b.innerHTML=`<input type="file">`;}
+document.getElementById("modal").style.display="flex";
+}
+function closeModal(){document.getElementById("modal").style.display="none";}
+
+/* FLEET CODE */
+function toggleFleetCode(select){
+let box=document.getElementById("fleetCodeBox");
+if(select.value==="yes"){box.innerHTML=`<input placeholder="Fleet Code">`;}
+else{box.innerHTML="";}
+}
+
+/* FORMS */
+function loadForm(){
+let f=document.getElementById("form");
+let t=document.getElementById("title");
+
+/* DRIVER */
+if(role==="driver"){
+t.innerText="Driver Registration";
+f.innerHTML=`
+<input placeholder="Name">
+<input placeholder="Phone" oninput="validateNumberInput(this,'phone')">
+<input placeholder="Age" oninput="validateNumberInput(this,'age')">
+
+<select onchange="toggleFleetCode(this)">
+<option value="">Working under Fleet Owner?</option>
+<option value="yes">Yes</option>
+<option value="no">No</option>
+</select>
+
+<div id="fleetCodeBox"></div>
+
+${addressFields()}
+
+${upload("Upload Govt ID","gov")}
+${upload("Upload Photo","photo")}
+`;
+}
+
+/* AGENT */
+if(role==="agent"){
+t.innerText="Agent Registration";
+f.innerHTML=`
+<input placeholder="Name">
+<input placeholder="Phone" oninput="validateNumberInput(this,'phone')">
+<input placeholder="Age" oninput="validateNumberInput(this,'age')">
+
+<select>
+<option value="">Select Gender</option>
+<option>Male</option>
+<option>Female</option>
+<option>Others</option>
+</select>
+
+${addressFields()}
+
+${upload("Upload Govt ID","gov")}
+${upload("Upload Photo","photo")}
+
+<input placeholder="Business Name">
+
+<select>
+<option value="">Select Work Type</option>
+<option>Broker</option>
+<option>Transport Manager</option>
+<option>Both</option>
+</select>
+
+<input placeholder="Area of Operation" oninput="showCitySuggestions(this)">
+`;
+}
+
+/* SHIPPER */
+if(role==="shipper"){
+t.innerText="Shipper Registration";
+f.innerHTML=`
+<input placeholder="Name / Company">
+<input placeholder="Phone" oninput="validateNumberInput(this,'phone')">
+
+${addressFields()}
+
+${upload("Upload Govt ID","gov")}
+${upload("Upload Photo","photo")}
+`;
+}
+
+/* FLEET */
+if(role==="fleet"){
+t.innerText="Fleet Owner Registration";
+f.innerHTML=`
+<input placeholder="Name">
+<input placeholder="Age" oninput="validateNumberInput(this,'age')">
+<select>
+<option value="">Select Gender</option>
+<option>Male</option>
+<option>Female</option>
+<option>Others</option>
+</select>
+
+<input placeholder="Phone" oninput="validateNumberInput(this,'phone')">
+
+${addressFields()}
+
+${upload("Upload Govt ID","gov")}
+${upload("Upload Photo","photo")}
+
+<input placeholder="Number of Trucks" oninput="validateNumberInput(this,'phone')">
+`;
+}
+
+/* COMPANY */
+if(role==="company"){
+t.innerText="Company Registration";
+f.innerHTML=`
+<input placeholder="Company Name">
+<input placeholder="Phone" oninput="validateNumberInput(this,'phone')">
+<input placeholder="Designation">
+
+${upload("Upload Company ID / Letter","company")}
+${upload("Upload Govt ID (Representative)","gov")}
+
+<input placeholder="GST (Optional)">
+<input placeholder="PAN">
+`;
+}
+}
+
+</script>
+
+</body>
+</html>
