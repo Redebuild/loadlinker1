@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LoadLink</title>
+
+<style>
+body{font-family:'Segoe UI';margin:0;background:linear-gradient(135deg,#f5f7fa,#e4ecf7);}
+.screen{display:none;padding:20px;text-align:center;}
+.active{display:block;}
+
+/* TOPBAR */
+.topbar{
+  position:fixed;
+  top:0;left:0;width:100%;height:55px;
+  background:white;
+  display:flex;
+  align-items:center;
+  padding:0 12px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.1);
+  z-index:1000;
+}
+
+.back-btn{
+  background:linear-gradient(135deg,#e0e0e0,#ffffff);
+  border:none;
+  border-radius:10px;
+  width:38px;height:38px;
+  font-size:18px;
+}
+
+#register{padding-top:80px;}
+
+/* GRID */
+.role-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:15px;}
+.role-tile{aspect-ratio:1;border-radius:16px;color:white;display:flex;flex-direction:column;justify-content:center;align-items:center;}
+.role-tile span{font-size:28px;}
+
+.driver{background:linear-gradient(45deg,#ff7e5f,#feb47b);}
+.fleet{background:linear-gradient(45deg,#43cea2,#185a9d);}
+.agent{background:linear-gradient(45deg,#667eea,#764ba2);}
+.company{background:linear-gradient(45deg,#f7971e,#ffd200);}
+.shipper{background:linear-gradient(45deg,#00c6ff,#0072ff);}
+
+/* FORM */
+.form-card{
+  width:90%;
+  margin:auto;
+  padding:20px;
+  border-radius:20px;
+  background:linear-gradient(135deg,#fff,#f0f4ff);
+  box-shadow:0 10px 25px rgba(0,0,0,0.15);
+}
+
+input,select{
+  width:100%;
+  padding:12px;
+  margin:8px 0;
+  border-radius:10px;
+  border:none;
+  box-shadow:inset 0 2px 4px rgba(0,0,0,0.08);
+}
+
+.main{
+  margin-top:15px;
+  padding:14px;
+  background:linear-gradient(45deg,#000,#333);
+  color:white;
+  border-radius:12px;
+  width:90%;
+}
+
+.upload-btn{
+  width:100%;
+  padding:12px;
+  margin:8px 0;
+  border-radius:10px;
+  border:2px dashed #bbb;
+  background:#fafafa;
+}
+
+/* MODAL */
+.modal{
+  display:none;
+  position:fixed;
+  top:0;left:0;width:100%;height:100%;
+  background:rgba(0,0,0,0.5);
+  justify-content:center;
+  align-items:center;
+}
+.modal-content{
+  background:white;
+  padding:20px;
+  border-radius:12px;
+  width:85%;
+}
+</style>
+</head>
+
+<body>
+
+<!-- ROLE -->
+<div id="role" class="screen active">
+<h2>Who are you?</h2>
+<div class="role-grid">
+<button class="role-tile driver" onclick="selectRole('driver')"><span>🚚</span>Driver</button>
+<button class="role-tile fleet" onclick="selectRole('fleet')"><span>🚛</span>Fleet Owner</button>
+<button class="role-tile agent" onclick="selectRole('agent')"><span>🤝</span>Agent</button>
+<button class="role-tile company" onclick="selectRole('company')"><span>🏢</span>Company</button>
+<button class="role-tile shipper" onclick="selectRole('shipper')"><span>📦</span>Shipper</button>
+</div>
+</div>
+
+<!-- REGISTER -->
+<div id="register" class="screen">
+<div class="topbar">
+<button class="back-btn" onclick="goBack()">⬅</button>
+</div>
+
+<h2>LoadLink</h2>
+<p style="font-size:12px;color:gray;">Load jaha, Truck waha</p>
+
+<h2 id="title"></h2>
+
+<div class="form-card">
+<div id="form"></div>
+</div>
+
+<button class="main" onclick="submitForm()">Submit</button>
+</div>
+
+<!-- MODAL -->
+<div id="modal" class="modal">
+<div class="modal-content">
+<h3 id="modalTitle"></h3>
+<div id="modalBody"></div>
+<br>
+<button onclick="closeModal()">Close</button>
+</div>
+</div>
+
+<script>
+
+let role="";
+
+/* NAV */
+function goTo(id){
+document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+document.getElementById(id).classList.add('active');
+history.pushState({screen:id},"","#"+id);
+}
+function goBack(){history.back();}
+window.onpopstate=e=>goTo(e.state?.screen||"role");
+
+/* ROLE */
+function selectRole(r){role=r;goTo('register');loadForm();}
+
+/* HELPERS */
+function validateNumberInput(input){
+input.value=input.value.replace(/[^0-9]/g,'');
+}
+
+function addressFields(){
+return `
+<input placeholder="State / UT">
+<input placeholder="Pincode" oninput="validateNumberInput(this)">
+`;
+}
+
+function upload(label,type){
+return `<button class="upload-btn" onclick="openModal('${type}')">${label}</button>`;
+}
+
+function openModal(type){
+let t=document.getElementById("modalTitle");
+let b=document.getElementById("modalBody");
+
+if(type==="gov"){t.innerText="Upload Govt ID";b.innerHTML=`<input type="file">`;}
+if(type==="photo"){t.innerText="Upload Photo";b.innerHTML=`<input type="file">`;}
+if(type==="company"){t.innerText="Upload Company ID";b.innerHTML=`<input type="file">`;}
+
+document.getElementById("modal").style.display="flex";
+}
+
+function closeModal(){
+document.getElementById("modal").style.display="none";
+}
+
+/* FLEET CODE TOGGLE */
+function toggleFleetCode(select){
+let box=document.getElementById("fleetCodeBox");
+
+if(select.value==="yes"){
+box.innerHTML=`<input placeholder="Enter Fleet Code">`;
+}else{
+box.innerHTML="";
+}
+}
+
+/* SUBMIT */
+function submitForm(){
+alert("Registration Completed for "+role);
+}
+
+/* FORMS */
+function loadForm(){
+let f=document.getElementById("form");
+let t=document.getElementById("title");
+
+/* DRIVER */
+if(role==="driver"){
+t.innerText="Driver Registration";
+f.innerHTML=`
+<input placeholder="Name">
+<input placeholder="Phone" oninput="validateNumberInput(this)">
+<input placeholder="Age" oninput="validateNumberInput(this)">
+
+<select onchange="toggleFleetCode(this)">
+<option value="">Working under Fleet Owner?</option>
+<option value="yes">Yes</option>
+<option value="no">No</option>
+</select>
+
+<div id="fleetCodeBox"></div>
+
+${addressFields()}
+
+${upload("Upload Govt ID","gov")}
+${upload("Upload Photo","photo")}
+`;
+}
+
+/* FLEET */
+if(role==="fleet"){
+t.innerText="Fleet Owner Registration";
+f.innerHTML=`
+<input placeholder="Name">
+<input placeholder="Age" oninput="validateNumberInput(this)">
+<select>
+<option>Select Gender</option>
+<option>Male</option>
+<option>Female</option>
+<option>Others</option>
+</select>
+<input placeholder="Phone" oninput="validateNumberInput(this)">
+
+${addressFields()}
+
+${upload("Upload Govt ID","gov")}
+${upload("Upload Photo","photo")}
+
+<input placeholder="Number of Trucks">
+`;
+}
+
+/* AGENT */
+if(role==="agent"){
+t.innerText="Agent Registration";
+f.innerHTML=`
+<input placeholder="Name">
+<input placeholder="Phone">
+<input placeholder="Age">
+<select>
+<option>Select Gender</option>
+<option>Male</option>
+<option>Female</option>
+<option>Others</option>
+</select>
+
+${addressFields()}
+
+${upload("Upload Govt ID","gov")}
+${upload("Upload Photo","photo")}
+`;
+}
+
+/* SHIPPER */
+if(role==="shipper"){
+t.innerText="Shipper Registration";
+f.innerHTML=`
+<input placeholder="Name / Company">
+<input placeholder="Phone">
+
+${addressFields()}
+
+${upload("Upload Govt ID","gov")}
+${upload("Upload Photo","photo")}
+`;
+}
+
+/* COMPANY */
+if(role==="company"){
+t.innerText="Company Registration";
+f.innerHTML=`
+<input placeholder="Company Name">
+<input placeholder="Phone">
+<input placeholder="Designation">
+
+${upload("Upload Company ID","company")}
+${upload("Upload Govt ID","gov")}
+`;
+}
+
+}
+
+</script>
+
+</body>
+</html>
